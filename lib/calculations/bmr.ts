@@ -1,7 +1,7 @@
 import { Sex } from "../types";
 
 /**
- * Mifflin-St Jeor equation — most validated for general population.
+ * Mifflin-St Jeor equation, the most validated formula for general populations.
  * Returns BMR in kcal/day.
  */
 export function calculateBMR(

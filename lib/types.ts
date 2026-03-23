@@ -1,5 +1,4 @@
 export type Sex = "male" | "female";
-export type Unit = "metric" | "imperial";
 export type ActivityLevel =
   | "sedentary"
   | "lightly_active"
@@ -53,4 +52,5 @@ export interface CalculationResult {
   bodyComposition: BodyComposition;
   maintenanceMacros: MacroResult;
   cutProjection: CutProjection | null;
+  idealWeight: import("./calculations/idealWeight").IdealWeightResult;
 }

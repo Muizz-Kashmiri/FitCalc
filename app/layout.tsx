@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitCalc — Nutrition & Body Composition Calculator",
+  title: "FitCalc: Nutrition & Body Composition Calculator",
   description:
     "Calculate your BMR, maintenance calories, lean body mass, and exact macro targets for protein, carbs, and fats. Includes a cut calculator for fat loss planning.",
   openGraph: {
-    title: "FitCalc — Nutrition & Body Composition Calculator",
+    title: "FitCalc: Nutrition & Body Composition Calculator",
     description: "Know your maintenance calories and macro targets based on lean body mass.",
     type: "website",
   },

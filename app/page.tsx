@@ -50,7 +50,7 @@ export default function Home() {
               </h2>
               <p className="text-zinc-400 max-w-xl mx-auto text-sm sm:text-base">
                 Calculate your maintenance calories, lean body mass, and precise macro targets
-                based on your body composition — not just your total weight.
+                based on your body composition, not just your total weight.
               </p>
             </div>
 
@@ -93,7 +93,7 @@ export default function Home() {
 
       <footer className="border-t border-zinc-800 mt-20 py-6 text-center text-xs text-zinc-600">
         Calculations use the Mifflin-St Jeor equation and LBM-based protein targets.
-        This tool is for informational purposes — consult a professional for medical advice.
+        This tool is for informational purposes. Consult a professional for medical advice.
       </footer>
     </main>
   );

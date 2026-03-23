@@ -5,43 +5,57 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Start dev server at localhost:3000
-npm run build     # Production build
-npm run lint      # ESLint
-npx tsc --noEmit  # Type check without building
+npm run dev          # Dev server at localhost:3000
+npm run build        # Production build
+npm run lint         # ESLint
+npx tsc --noEmit     # Type check without building
+vercel deploy --prod # Deploy directly via CLI (no git push needed)
 ```
 
 ## Architecture
 
-Next.js 14 App Router, TypeScript, Tailwind CSS. Single-page client-side calculator — no backend, no database, no API routes.
+Next.js 16 App Router, TypeScript, Tailwind CSS. Single-page client-side calculator. No backend, no database, no API routes.
 
 ### Data flow
 
-1. `StatsForm` collects user input → calls `onCalculate(stats: UserStats)`
+1. `StatsForm` collects user input and calls `onCalculate(stats: UserStats)`
 2. `app/page.tsx` calls `calculate(stats)` from `lib/utils.ts`
-3. `calculate()` orchestrates the calculation pipeline and returns `CalculationResult`
-4. `ResultsCard` + `CutProjection` + `MacroChart` render the result
+3. `calculate()` runs the full pipeline and returns `CalculationResult`
+4. `ResultsCard` renders all result sections using sub-components
 
 ### Calculation pipeline (`lib/calculations/`)
 
 | File | Purpose |
 |---|---|
-| `bmr.ts` | Mifflin-St Jeor BMR (kcal/day at rest) |
-| `tdee.ts` | BMR × activity multiplier → maintenance calories |
-| `bodyFat.ts` | LBM/fat mass from body fat %; visual selector ranges |
-| `macros.ts` | Protein from **LBM** (not total weight) × experience multiplier; fat floor; carbs fill remainder |
-| `cut.ts` | Deficit → target calories (capped at safe minimum); weekly/monthly fat loss projections |
+| `bmr.ts` | Mifflin-St Jeor BMR |
+| `tdee.ts` | BMR x activity multiplier |
+| `bodyFat.ts` | LBM/fat mass split, ACE BF% categories |
+| `macros.ts` | Protein from LBM x experience multiplier, fat floor, carbs fill remainder |
+| `cut.ts` | Deficit to weekly/monthly fat loss, safe calorie floor |
+| `idealWeight.ts` | Devine formula, Robinson formula, BMI healthy range, LBM-based goal weights |
 
 ### Key design decisions
 
-- **Protein is based on lean body mass**, not total weight — intentional and more accurate.
-- All unit conversions (kg↔lbs, cm↔ft/in) happen in `lib/utils.ts`; internally all calculations use metric.
+- **Protein is based on lean body mass (LBM), not total weight.** This is intentional and more accurate. Do not change this to total bodyweight.
+- All unit conversions (kg/lbs, cm/ft+in) happen in `lib/utils.ts`. All internal calculations use metric only.
 - Safe calorie floor: 1,500 kcal (men) / 1,200 kcal (women), enforced in `cut.ts`.
+- No em dashes anywhere in the UI. Use plain hyphens, commas, or rephrase.
+- All number inputs use `value={n || ""}` with `placeholder="0"` so the field clears when the user deletes the value rather than showing a stuck zero.
 
-### Body fat selector (`components/BodyFatSelector.tsx`)
+### Components
 
-Two modes: visual grid (SVG silhouettes scaled by BF%) or manual number entry. Silhouettes are pure SVG — no images needed.
+| Component | Role |
+|---|---|
+| `StatsForm` | Form with per-field unit toggles (height and weight are independent) |
+| `BodyFatSelector` | ACE category chart with sex-specific SVG figures + always-visible manual entry |
+| `InfoTip` | Reusable ⓘ tooltip (click to open, click outside to close) |
+| `ResultsCard` | Assembles all result sections |
+| `MacroChart` | Recharts donut chart for macro breakdown |
+| `CutProjection` | Cut stats, time-to-goal calculator |
+| `IdealWeight` | BMI range bar, Devine/Robinson IBW, LBM-based goal weights |
 
 ## Deployment
 
-Deploy to Vercel. For subdomain (`fitness.yourdomain.com`): add a CNAME record pointing to `cname.vercel-dns.com`, then add the custom domain in the Vercel project settings.
+Deployed via `vercel deploy --prod` (direct CLI upload, no git required).
+Live at: `fitness.muizzbutt.com`
+DNS: A record in Cloudflare pointing `fitness` to `76.76.21.21` (DNS only, not proxied).

@@ -6,6 +6,7 @@ import { calculateTDEE } from "./calculations/tdee";
 import { calculateBodyComposition } from "./calculations/bodyFat";
 import { calculateMacros } from "./calculations/macros";
 import { calculateCut } from "./calculations/cut";
+import { calculateIdealWeight } from "./calculations/idealWeight";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -38,7 +39,15 @@ export function calculate(stats: UserStats): CalculationResult {
         )
       : null;
 
-  return { bmr, tdee, bodyComposition, maintenanceMacros, cutProjection };
+  const idealWeight = calculateIdealWeight(
+    stats.heightCm,
+    stats.weightKg,
+    bodyComposition.leanMassKg,
+    stats.bodyFatPct,
+    stats.sex
+  );
+
+  return { bmr, tdee, bodyComposition, maintenanceMacros, cutProjection, idealWeight };
 }
 
 export function kgToLbs(kg: number) {

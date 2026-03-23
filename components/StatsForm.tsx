@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { UserStats, Sex, Unit, ActivityLevel, TrainingExperience, Goal } from "@/lib/types";
+import { UserStats, Sex, ActivityLevel, TrainingExperience, Goal } from "@/lib/types";
 import { ACTIVITY_LABELS } from "@/lib/calculations/tdee";
 import BodyFatSelector from "./BodyFatSelector";
 import { cn, kgToLbs, lbsToKg, cmToFtIn, ftInToCm } from "@/lib/utils";
 import { Calculator } from "lucide-react";
+import InfoTip from "./InfoTip";
 
 interface Props {
   onCalculate: (stats: UserStats) => void;
@@ -25,27 +26,32 @@ const DEFAULT_STATS: UserStats = {
 
 export default function StatsForm({ onCalculate }: Props) {
   const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
-  const [unit, setUnit] = useState<Unit>("metric");
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const [heightFt, setHeightFt] = useState(5);
   const [heightIn, setHeightIn] = useState(9);
   const [weightLbs, setWeightLbs] = useState(176);
   const [errors, setErrors] = useState<Partial<Record<keyof UserStats, string>>>({});
 
-  const set = <K extends keyof UserStats>(key: K, value: UserStats[K]) => {
+  const set = <K extends keyof UserStats>(key: K, value: UserStats[K]) =>
     setStats((prev) => ({ ...prev, [key]: value }));
-  };
 
-  const handleUnitToggle = (newUnit: Unit) => {
-    setUnit(newUnit);
-    if (newUnit === "imperial") {
+  const handleHeightUnitSwitch = (u: "cm" | "ft") => {
+    if (u === "ft" && heightUnit === "cm") {
       const { ft, inches } = cmToFtIn(stats.heightCm);
       setHeightFt(ft);
       setHeightIn(inches);
-      setWeightLbs(kgToLbs(stats.weightKg));
-    } else {
-      set("heightCm", ftInToCm(heightFt, heightIn));
-      set("weightKg", lbsToKg(weightLbs));
     }
+    if (u === "cm" && heightUnit === "ft") {
+      set("heightCm", ftInToCm(heightFt, heightIn));
+    }
+    setHeightUnit(u);
+  };
+
+  const handleWeightUnitSwitch = (u: "kg" | "lbs") => {
+    if (u === "lbs" && weightUnit === "kg") setWeightLbs(kgToLbs(stats.weightKg));
+    if (u === "kg" && weightUnit === "lbs") set("weightKg", lbsToKg(weightLbs));
+    setWeightUnit(u);
   };
 
   const validate = (): boolean => {
@@ -60,42 +66,26 @@ export default function StatsForm({ onCalculate }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
-
-    let finalStats = { ...stats };
-    if (unit === "imperial") {
-      finalStats = {
-        ...finalStats,
-        heightCm: ftInToCm(heightFt, heightIn),
-        weightKg: lbsToKg(weightLbs),
-      };
-    }
+    // Sync imperial display values back to metric before validating
+    const finalStats = {
+      ...stats,
+      heightCm: heightUnit === "ft" ? ftInToCm(heightFt, heightIn) : stats.heightCm,
+      weightKg: weightUnit === "lbs" ? lbsToKg(weightLbs) : stats.weightKg,
+    };
+    setStats(finalStats);
+    const errs: typeof errors = {};
+    if (finalStats.age < 10 || finalStats.age > 100) errs.age = "Enter an age between 10–100";
+    if (finalStats.heightCm < 100 || finalStats.heightCm > 250) errs.heightCm = "Height seems off";
+    if (finalStats.weightKg < 30 || finalStats.weightKg > 300) errs.weightKg = "Weight seems off";
+    if (finalStats.bodyFatPct < 4 || finalStats.bodyFatPct > 60) errs.bodyFatPct = "Body fat must be 4–60%";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     onCalculate(finalStats);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Unit toggle */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Your Stats</h2>
-        <div className="flex rounded-lg overflow-hidden border border-zinc-700">
-          {(["metric", "imperial"] as Unit[]).map((u) => (
-            <button
-              key={u}
-              type="button"
-              onClick={() => handleUnitToggle(u)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                unit === u
-                  ? "bg-emerald-500 text-white"
-                  : "bg-zinc-800 text-zinc-400 hover:text-white"
-              )}
-            >
-              {u === "metric" ? "Metric (kg/cm)" : "Imperial (lbs/ft)"}
-            </button>
-          ))}
-        </div>
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-7">
+      <h2 className="text-lg font-semibold text-white">Your Stats</h2>
 
       {/* Sex */}
       <Field label="Sex">
@@ -120,58 +110,98 @@ export default function StatsForm({ onCalculate }: Props) {
 
       {/* Age */}
       <Field label="Age" error={errors.age}>
-        <NumberInput
-          value={stats.age}
-          onChange={(v) => set("age", v)}
-          min={10}
-          max={100}
-          unit="years"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={stats.age || ""}
+            placeholder="0"
+            onChange={(e) => set("age", parseFloat(e.target.value) || 0)}
+            min={10}
+            max={100}
+            className="w-24 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+          />
+          <span className="text-sm text-zinc-400">years</span>
+        </div>
       </Field>
 
       {/* Height */}
       <Field label="Height" error={errors.heightCm}>
-        {unit === "metric" ? (
-          <NumberInput
-            value={stats.heightCm}
-            onChange={(v) => set("heightCm", v)}
-            min={100}
-            max={250}
-            unit="cm"
+        <div className="flex items-center gap-3 flex-wrap">
+          {heightUnit === "cm" ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={stats.heightCm || ""}
+                placeholder="0"
+                onChange={(e) => set("heightCm", parseFloat(e.target.value) || 0)}
+                min={100}
+                max={250}
+                className="w-24 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <span className="text-sm text-zinc-400">cm</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={heightFt || ""}
+                placeholder="0"
+                onChange={(e) => setHeightFt(parseFloat(e.target.value) || 0)}
+                min={3}
+                max={8}
+                className="w-16 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <span className="text-sm text-zinc-400">ft</span>
+              <input
+                type="number"
+                value={heightIn || ""}
+                placeholder="0"
+                onChange={(e) => setHeightIn(parseFloat(e.target.value) || 0)}
+                min={0}
+                max={11}
+                className="w-16 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <span className="text-sm text-zinc-400">in</span>
+            </div>
+          )}
+          <UnitToggle
+            options={["cm", "ft"]}
+            value={heightUnit}
+            onChange={(v) => handleHeightUnitSwitch(v as "cm" | "ft")}
           />
-        ) : (
-          <div className="flex items-center gap-2">
-            <NumberInput value={heightFt} onChange={setHeightFt} min={3} max={8} unit="ft" />
-            <NumberInput value={heightIn} onChange={setHeightIn} min={0} max={11} unit="in" />
-          </div>
-        )}
+        </div>
       </Field>
 
       {/* Weight */}
       <Field label="Weight" error={errors.weightKg}>
-        {unit === "metric" ? (
-          <NumberInput
-            value={stats.weightKg}
-            onChange={(v) => set("weightKg", v)}
-            min={30}
-            max={300}
-            step={0.5}
-            unit="kg"
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={(weightUnit === "kg" ? stats.weightKg : weightLbs) || ""}
+              placeholder="0"
+              onChange={(e) => {
+                const v = parseFloat(e.target.value) || 0;
+                if (weightUnit === "kg") set("weightKg", v);
+                else setWeightLbs(v);
+              }}
+              min={weightUnit === "kg" ? 30 : 66}
+              max={weightUnit === "kg" ? 300 : 661}
+              step={weightUnit === "kg" ? 0.5 : 1}
+              className="w-24 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+            />
+            <span className="text-sm text-zinc-400">{weightUnit}</span>
+          </div>
+          <UnitToggle
+            options={["kg", "lbs"]}
+            value={weightUnit}
+            onChange={(v) => handleWeightUnitSwitch(v as "kg" | "lbs")}
           />
-        ) : (
-          <NumberInput
-            value={weightLbs}
-            onChange={setWeightLbs}
-            min={66}
-            max={661}
-            step={1}
-            unit="lbs"
-          />
-        )}
+        </div>
       </Field>
 
       {/* Activity Level */}
-      <Field label="Activity Level">
+      <Field label="Activity Level" tip="How active you are on a typical day outside of the gym. Be honest here; overestimating is the most common reason people stall on a diet.">
         <select
           value={stats.activityLevel}
           onChange={(e) => set("activityLevel", e.target.value as ActivityLevel)}
@@ -184,7 +214,7 @@ export default function StatsForm({ onCalculate }: Props) {
       </Field>
 
       {/* Training Experience */}
-      <Field label="Training Experience">
+      <Field label="Training Experience" tip="How long you have been training consistently. More experienced lifters need slightly more protein to maintain muscle because their bodies are more efficient at using it.">
         <div className="flex gap-3">
           {(["beginner", "intermediate", "advanced"] as TrainingExperience[]).map((exp) => (
             <button
@@ -202,11 +232,15 @@ export default function StatsForm({ onCalculate }: Props) {
             </button>
           ))}
         </div>
-        <ExperienceHint experience={stats.experience} />
+        <p className="text-xs text-zinc-500 mt-1">
+          {stats.experience === "beginner" && "< 1 year consistent training"}
+          {stats.experience === "intermediate" && "1–3 years consistent training"}
+          {stats.experience === "advanced" && "3+ years consistent training"}
+        </p>
       </Field>
 
       {/* Body Fat */}
-      <Field label="Body Fat %" error={errors.bodyFatPct}>
+      <Field label="Body Fat %" error={errors.bodyFatPct} tip="The percentage of your body weight that is fat. We use this to find your lean mass, which gives a more accurate protein target than using your total weight.">
         <BodyFatSelector
           sex={stats.sex}
           value={stats.bodyFatPct}
@@ -223,7 +257,7 @@ export default function StatsForm({ onCalculate }: Props) {
               type="button"
               onClick={() => set("goal", g)}
               className={cn(
-                "flex-1 py-2.5 rounded-xl border text-sm font-medium capitalize transition-all",
+                "flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all",
                 stats.goal === g
                   ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
                   : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-500"
@@ -235,9 +269,9 @@ export default function StatsForm({ onCalculate }: Props) {
         </div>
       </Field>
 
-      {/* Deficit slider — only shown when cutting */}
+      {/* Deficit slider */}
       {stats.goal === "cut" && (
-        <Field label={`Calorie Deficit: ${stats.deficitKcal} kcal/day`}>
+        <Field label={`Calorie Deficit: ${stats.deficitKcal} kcal/day`} tip="How many fewer calories you eat compared to what you burn each day. A 500 kcal deficit is a good starting point. Going too aggressive leads to muscle loss and burnout.">
           <input
             type="range"
             min={250}
@@ -258,7 +292,6 @@ export default function StatsForm({ onCalculate }: Props) {
         </Field>
       )}
 
-      {/* Submit */}
       <button
         type="submit"
         className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold py-3.5 rounded-2xl transition-colors text-base"
@@ -273,57 +306,52 @@ export default function StatsForm({ onCalculate }: Props) {
 function Field({
   label,
   error,
+  tip,
   children,
 }: {
   label: string;
   error?: string;
+  tip?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-zinc-300">{label}</label>
+      <div className="flex items-center gap-1.5">
+        <label className="text-sm font-medium text-zinc-300">{label}</label>
+        {tip && <InfoTip text={tip} />}
+      </div>
       {children}
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
 }
 
-function NumberInput({
+function UnitToggle({
+  options,
   value,
   onChange,
-  min,
-  max,
-  step = 1,
-  unit,
 }: {
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-  unit: string;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        min={min}
-        max={max}
-        step={step}
-        className="w-28 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
-      />
-      <span className="text-sm text-zinc-400">{unit}</span>
+    <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
+          className={cn(
+            "px-3 py-1.5 text-xs font-medium transition-colors",
+            value === opt
+              ? "bg-emerald-500 text-white"
+              : "bg-zinc-800 text-zinc-400 hover:text-white"
+          )}
+        >
+          {opt}
+        </button>
+      ))}
     </div>
   );
-}
-
-function ExperienceHint({ experience }: { experience: TrainingExperience }) {
-  const hints: Record<TrainingExperience, string> = {
-    beginner: "< 1 year consistent training",
-    intermediate: "1–3 years consistent training",
-    advanced: "3+ years consistent training",
-  };
-  return <p className="text-xs text-zinc-500 mt-1">{hints[experience]}</p>;
 }

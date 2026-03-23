@@ -50,6 +50,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-
+# Claude filers
 CLAUDE.md
-.claude
+.claude/settings.local.json
+.claude/
+
+# private notes & brainstorming
+FUTURE.md
+.vercel

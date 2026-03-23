@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CutProjection as CutProjectionType } from "@/lib/types";
 import MacroChart from "./MacroChart";
+import InfoTip from "./InfoTip";
 import { TrendingDown, AlertTriangle } from "lucide-react";
 
 interface Props {
@@ -23,10 +24,34 @@ export default function CutProjection({ projection, tdee }: Props) {
     <div className="space-y-5">
       {/* Header stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatBox label="Target Calories" value={`${projection.targetCalories}`} unit="kcal/day" color="text-emerald-400" />
-        <StatBox label="Daily Deficit" value={`−${Math.round(projection.deficitKcal)}`} unit="kcal" color="text-orange-400" />
-        <StatBox label="Weekly Loss" value={`~${projection.weeklyLossKg}`} unit="kg/week" color="text-blue-400" />
-        <StatBox label="Monthly Loss" value={`~${projection.monthlyLossKg}`} unit="kg/month" color="text-purple-400" />
+        <StatBox
+          label="Target Calories"
+          value={`${projection.targetCalories}`}
+          unit="kcal/day"
+          color="text-emerald-400"
+          tip="The number of calories you should eat each day to lose fat at the rate you selected."
+        />
+        <StatBox
+          label="Daily Deficit"
+          value={`-${Math.round(projection.deficitKcal)}`}
+          unit="kcal"
+          color="text-orange-400"
+          tip="How many fewer calories you eat compared to what your body burns. This gap forces your body to use stored fat for energy."
+        />
+        <StatBox
+          label="Weekly Loss"
+          value={`~${projection.weeklyLossKg}`}
+          unit="kg/week"
+          color="text-blue-400"
+          tip="Estimated fat loss per week based on your deficit. 1 kg of fat holds roughly 7,700 calories."
+        />
+        <StatBox
+          label="Monthly Loss"
+          value={`~${projection.monthlyLossKg}`}
+          unit="kg/month"
+          color="text-purple-400"
+          tip="Projected fat loss over a full month. Actual results vary based on water retention, sleep, and consistency."
+        />
       </div>
 
       {/* Safety warning if deficit was capped */}
@@ -61,7 +86,7 @@ export default function CutProjection({ projection, tdee }: Props) {
         </div>
         {weeksToGoal && !isNaN(weeksToGoal) && (
           <p className="text-sm text-emerald-300 font-medium">
-            Estimated time: ~{weeksToGoal} weeks ({Math.round(weeksToGoal / 4.33)} months)
+            Estimated time: about {weeksToGoal} weeks ({Math.round(weeksToGoal / 4.33)} months)
           </p>
         )}
       </div>
@@ -76,10 +101,10 @@ export default function CutProjection({ projection, tdee }: Props) {
       <div className="bg-zinc-800/40 rounded-xl p-4 space-y-2 text-sm text-zinc-400">
         <p className="text-zinc-300 font-medium">Guidelines for your cut:</p>
         <ul className="space-y-1 list-disc list-inside">
-          <li>Hit your protein target every day — this preserves muscle while losing fat</li>
-          <li>Reassess every 4 weeks; adjust calories if loss stalls for 2+ weeks</li>
-          <li>A 500 kcal/day deficit = ~0.45 kg fat loss/week (sustainable long-term)</li>
-          <li>A 750 kcal/day deficit is aggressive; expect some fatigue — keep training intensity up</li>
+          <li>Hit your protein target every day. This preserves muscle while losing fat.</li>
+          <li>Reassess every 4 weeks; adjust calories if loss stalls for 2+ weeks.</li>
+          <li>A 500 kcal/day deficit gives about 0.45 kg fat loss per week (sustainable long-term).</li>
+          <li>A 750 kcal/day deficit is aggressive; keep training intensity up to hold on to muscle.</li>
         </ul>
       </div>
     </div>
@@ -91,17 +116,22 @@ function StatBox({
   value,
   unit,
   color,
+  tip,
 }: {
   label: string;
   value: string;
   unit: string;
   color: string;
+  tip: string;
 }) {
   return (
     <div className="bg-zinc-800/60 rounded-xl p-3 text-center">
       <div className={`text-xl font-bold ${color}`}>{value}</div>
       <div className="text-xs text-zinc-400 mt-0.5">{unit}</div>
-      <div className="text-xs text-zinc-500 mt-1">{label}</div>
+      <div className="flex items-center justify-center gap-1 mt-1">
+        <div className="text-xs text-zinc-500">{label}</div>
+        <InfoTip text={tip} />
+      </div>
     </div>
   );
 }
