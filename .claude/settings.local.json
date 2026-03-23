@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(mkdir -p /c/Development/fitness/lib/calculations)",
+      "Bash(mkdir -p /c/Development/fitness/components)",
+      "Bash(npm run:*)"
     ]
   }
 }

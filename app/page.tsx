@@ -1,65 +1,123 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import StatsForm from "@/components/StatsForm";
+import ResultsCard from "@/components/ResultsCard";
+import { UserStats, CalculationResult } from "@/lib/types";
+import { calculate } from "@/lib/utils";
+import { ChevronLeft, Dumbbell } from "lucide-react";
 
 export default function Home() {
+  const [result, setResult] = useState<CalculationResult | null>(null);
+  const [lastStats, setLastStats] = useState<UserStats | null>(null);
+
+  const handleCalculate = (stats: UserStats) => {
+    setLastStats(stats);
+    setResult(calculate(stats));
+    setTimeout(() => {
+      document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
+  const handleReset = () => {
+    setResult(null);
+    setLastStats(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-zinc-950 text-white">
+      {/* Header */}
+      <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
+          <div className="bg-emerald-500/20 p-2 rounded-xl">
+            <Dumbbell className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-white leading-none">FitCalc</h1>
+            <p className="text-xs text-zinc-500 mt-0.5">Nutrition & Body Composition Calculator</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {!result ? (
+          <>
+            {/* Hero */}
+            <div className="text-center mb-10">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+                Know Your Numbers
+              </h2>
+              <p className="text-zinc-400 max-w-xl mx-auto text-sm sm:text-base">
+                Calculate your maintenance calories, lean body mass, and precise macro targets
+                based on your body composition — not just your total weight.
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <StatsForm onCalculate={handleCalculate} />
+            </div>
+          </>
+        ) : (
+          <div id="results" className="space-y-6">
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Recalculate
+            </button>
+
+            <div className="grid lg:grid-cols-[340px,1fr] gap-6 items-start">
+              {/* Sidebar */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+                  Your Inputs
+                </h3>
+                {lastStats && <InputSummary stats={lastStats} />}
+                <button
+                  onClick={handleReset}
+                  className="w-full mt-2 text-sm text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl py-2 transition-colors"
+                >
+                  Edit Stats
+                </button>
+              </div>
+
+              {/* Results */}
+              <ResultsCard result={result} stats={lastStats!} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <footer className="border-t border-zinc-800 mt-20 py-6 text-center text-xs text-zinc-600">
+        Calculations use the Mifflin-St Jeor equation and LBM-based protein targets.
+        This tool is for informational purposes — consult a professional for medical advice.
+      </footer>
+    </main>
+  );
+}
+
+function InputSummary({ stats }: { stats: UserStats }) {
+  const rows = [
+    { label: "Sex", value: stats.sex.charAt(0).toUpperCase() + stats.sex.slice(1) },
+    { label: "Age", value: `${stats.age} yrs` },
+    { label: "Height", value: `${stats.heightCm} cm` },
+    { label: "Weight", value: `${stats.weightKg} kg` },
+    { label: "Body Fat", value: `${stats.bodyFatPct}%` },
+    { label: "Experience", value: stats.experience.charAt(0).toUpperCase() + stats.experience.slice(1) },
+    { label: "Goal", value: stats.goal === "cut" ? `Cut (−${stats.deficitKcal} kcal)` : "Maintain" },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {rows.map(({ label, value }) => (
+        <div key={label} className="flex justify-between text-sm">
+          <span className="text-zinc-500">{label}</span>
+          <span className="text-zinc-300 font-medium">{value}</span>
         </div>
-      </main>
+      ))}
     </div>
   );
 }
